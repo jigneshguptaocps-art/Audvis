@@ -32,7 +32,7 @@ localparam int unsigned DIV = CLK_HZ / (2 * BCLK_HZ);
 //clock generation and timing
 logic bclk_q; 
 logic lrclk_q;
-logic [8:0] div_cnt_q; 
+logic [$clog2(DIV)-1:0] div_cnt_q;
 logic bclk_rise;
 logic bclk_fall;
 logic bclk_fall_q; 
