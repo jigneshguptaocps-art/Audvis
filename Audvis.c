@@ -26,7 +26,7 @@ module i2s_tx #(
 
 localparam int unsigned BCLK_HZ = SAMPLE_HZ * CHNL_CNT * SAMPLE_W;
 localparam int unsigned LRCLK_HZ = SAMPLE_HZ;
-localparam int unsigned BCLK_TOGGLE = 2 * BCLK_HZ; 
+//localparam int unsigned BCLK_TOGGLE = 2 * BCLK_HZ; 
 localparam int unsigned DIV = CLK_HZ / (2 * BCLK_HZ);
 
 //clock generation and timing
