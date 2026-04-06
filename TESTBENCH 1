@@ -1,0 +1,88 @@
+`timescale 1ns/1ps
+
+module tb_i2s_tx_basic;
+
+    localparam int unsigned CLK_HZ    = 100_000_000;
+    localparam int unsigned SAMPLE_HZ = 48_000;
+    localparam int unsigned SAMPLE_W  = 16;
+    localparam int unsigned CHNL_CNT  = 2;
+
+    logic clk_i;
+    logic rst_ni;
+    logic enable_i;
+
+    logic [SAMPLE_W-1:0] sample_i;
+    logic sample_valid_i;
+    logic sample_ready_o;
+
+    logic i2s_sdata_o;
+    logic i2s_bclk_o;
+    logic i2s_lrclk_o;
+
+    logic underrun_o;
+    logic irq_o;
+
+    i2s_tx #(
+        .CLK_HZ(CLK_HZ),
+        .SAMPLE_HZ(SAMPLE_HZ),
+        .SAMPLE_W(SAMPLE_W),
+        .CHNL_CNT(CHNL_CNT)
+    ) dut (
+        .clk_i(clk_i),
+        .rst_ni(rst_ni),
+        .enable_i(enable_i),
+        .sample_i(sample_i),
+        .sample_valid_i(sample_valid_i),
+        .sample_ready_o(sample_ready_o),
+        .i2s_sdata_o(i2s_sdata_o),
+        .i2s_bclk_o(i2s_bclk_o),
+        .i2s_lrclk_o(i2s_lrclk_o),
+        .underrun_o(underrun_o),
+        .irq_o(irq_o)
+    );
+
+    // 100 MHz clock -> 10 ns period
+    initial clk_i = 1'b0;
+    always #5 clk_i = ~clk_i;
+
+    task automatic send_sample(input logic [15:0] s);
+        begin
+            @(posedge clk_i);
+            wait(sample_ready_o == 1'b1);
+            sample_i       <= s;
+            sample_valid_i <= 1'b1;
+            @(posedge clk_i);
+            sample_valid_i <= 1'b0;
+            $display("[%0t] Sent sample = 0x%04h", $time, s);
+        end
+    endtask
+
+    initial begin
+        rst_ni         = 1'b0;
+        enable_i       = 1'b0;
+        sample_i       = '0;
+        sample_valid_i = 1'b0;
+
+        repeat (5) @(posedge clk_i);
+        rst_ni   = 1'b1;
+        enable_i = 1'b1;
+
+        send_sample(16'hA5A5); // left
+        send_sample(16'h5AA5); // right
+        send_sample(16'h1234); // left
+        send_sample(16'hFEDC); // right
+        send_sample(16'h0F0F); // left
+        send_sample(16'hF0F0); // right
+
+        repeat (5000) @(posedge clk_i);
+
+        $display("Basic test complete.");
+        $finish;
+    end
+
+    initial begin
+        $dumpfile("tb_i2s_tx_basic.vcd");
+        $dumpvars(0, tb_i2s_tx_basic);
+    end
+
+endmodule
