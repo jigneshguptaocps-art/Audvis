@@ -98,4 +98,53 @@ end
 assign sample_ready_o = enable_i && !have_buf_q;
 
 always_ff @(posedge clk_i or negedge rst_ni) begin
-... (76 lines left)
+//clock divider 
+if(!rst_ni) begin
+    div_cnt_q <= '0;
+    bclk_q    <=1'b0;
+end else if (!enable_i) begin
+    div_cnt_q <+0;
+    bclk_q    <=1'b0;
+end else begin
+        if (div_cnt_q == DIV-1) begin
+            div_cnt_q <= '0;
+            bclk_q    <= ~bclk_q;
+        end else begin
+            div_cnt_q <= div_cnt_q + 1'b1;
+        end
+    end
+end
+//edge detect for internal use
+always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+        bclk_fall_q <= 1'b0;
+    end else begin
+        bclk_fall_q <= bclk_q;
+    end
+end
+
+assign bclk_rise = ( bclk_q && !bclk_fall_q);
+assign bclk_fall = (!bclk_q &&  bclk_fall_q);
+
+// --------------------------------------------------
+// Input sample buffer
+// --------------------------------------------------
+always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+        samp_buf_q <= '0;
+        have_buf_q <= 1'b0;
+    end else begin
+        if (sample_valid_i && sample_ready_o) begin
+            samp_buf_q <= sample_i;
+            have_buf_q <= 1'b1;
+        end else if ((state_q == LOAD) && bclk_fall) begin
+            // buffer gets consumed when a new word is loaded
+            have_buf_q <= 1'b0;
+        end
+    end
+end
+
+// --------------------------------------------------
+// Shift engine + LRCLK generation
+
+
